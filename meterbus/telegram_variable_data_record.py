@@ -11,6 +11,10 @@ from .data_information_block import DataInformationBlock
 
 from .core_objects import VIFTable, VIFUnit, DataEncoding, MeasureUnit
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class TelegramVariableDataRecord(object):
     UNIT_MULTIPLIER_MASK = 0x7F    # 0111 1111
@@ -21,6 +25,7 @@ class TelegramVariableDataRecord(object):
         self.vib = ValueInformationBlock()
 
         self._dataField = TelegramField()
+        self._parsed = None
 
     @property
     def dataField(self):
@@ -38,9 +43,17 @@ class TelegramVariableDataRecord(object):
         if len(self.vib.parts) == 0:
             return None, None, None
 
+        if self._parsed:
+            return self._parsed
+
         vif = self.vib.parts[0]
         vife = self.vib.parts[1:]
         vtf_ebm = self.EXTENSION_BIT_MASK
+
+        logger.info('RAW {}, vif: {}, vife: {}'.format(
+                " ".join(["{:02x}".format(x).upper() for x in self.vib.parts]),
+                vif, vife
+        ))
 
         if vif == VIFUnit.FIRST_EXT_VIF_CODES.value:  # 0xFB
             code = (vife[0] & self.UNIT_MULTIPLIER_MASK) | 0x200
@@ -79,7 +92,14 @@ class TelegramVariableDataRecord(object):
         else:
             code = (vif & self.UNIT_MULTIPLIER_MASK)
 
-        return VIFTable.lut[code]
+        _factor, _unit_measure, _unit_vif = VIFTable.lut[code]
+        logger.info('code: {}, factor: {}, unit (measure): {}, unit (vif): {}'.format(
+                code, _factor, _unit_measure, _unit_vif
+        ))
+
+        self._parsed = _factor, _unit_measure, _unit_vif
+
+        return self._parsed
 
     @property
     def unit(self):
