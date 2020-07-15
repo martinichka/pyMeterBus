@@ -9,7 +9,7 @@ import binascii
 from meterbus.globals import g
 from meterbus.defines import *
 
-address = 49
+address = meterbus.ADDRESS_NETWORK_LAYER # don't use primary address, but select by secondary address
 
 def frame_get_time(frame):
     for record in frame.body.interpreted["records"]:
@@ -81,6 +81,30 @@ with serial.Serial('/dev/ttyUSB0', 19200, 8, 'E', 1, 0.5) as ser:
         meterbus.serial_send(ser, frame)
         frame = meterbus.load(meterbus.recv_frame(ser, 1))
         assert isinstance(frame, meterbus.TelegramACK)        
+
+    def ping_address(ser, address, retries=5):
+        for i in range(0, retries + 1):
+            meterbus.send_ping_frame(ser, address)
+            try:
+                frame = meterbus.load(meterbus.recv_frame(ser, 1))
+                if isinstance(frame, meterbus.TelegramACK):
+                    return True
+            except meterbus.MBusFrameDecodeError:
+                pass
+
+        return False
+
+    def send_select_frame(secondary_address):
+        meterbus.send_select_frame(ser, secondary_address)
+        try:
+            frame = meterbus.load(meterbus.recv_frame(ser, 1))
+        except meterbus.MBusFrameDecodeError as e:
+            frame = e.value
+
+        assert isinstance(frame, meterbus.TelegramACK)
+
+    # select by secondary address
+    send_select_frame("711744492D2C3404")
 
     # request normal frame (assuming logger application has been terminated)
     frame = req_ud2()
