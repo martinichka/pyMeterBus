@@ -24,7 +24,7 @@ def frame_get_selected_logger(frame):
     return None
 
 
-with serial.Serial('/dev/ttyUSB0', 19200, 8, 'E', 1, 0.5) as ser:
+with serial.Serial('/dev/ttyUSB0', 9600, 8, 'E', 1, 0.5) as ser:
     meterbus.debug(True)
     
 
@@ -111,7 +111,7 @@ with serial.Serial('/dev/ttyUSB0', 19200, 8, 'E', 1, 0.5) as ser:
     t = frame_get_time(frame)
     print("Timestamp of normal request before: " + t)
   
-    req_logger(5)
+    req_logger(3)
     time.sleep(1)
     
     empty = False
